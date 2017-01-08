@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.jar.Attributes;
 
 import org.jacoco.core.analysis.Analyzer;
@@ -33,7 +34,7 @@ import org.jacoco.core.tools.ExecFileLoader;
  * 
  * Example code that we used to guide our use of Jacoco code coverage was found @ http://www.eclemma.org/jacoco/trunk/doc/api.html
  * 
- * @author IDT
+ * @author IDT and TheOaktonGroup
  */
 public class Tester {
 
@@ -77,6 +78,27 @@ public class Tester {
 	 * parameter factory that can be used to help figure out parameter signatures from the blackbox jars
 	 */
 	private ParameterFactory parameterFactory = null;
+	
+	/**
+	 * the number of test iterations that have been completed
+	 */
+	private int testIterations = 0;
+	
+	/**
+	 * the target number of test iterations to be completed, default 1000
+	 */
+	private int targetTestIterations = 50;
+	
+	/**
+	 * the specified time goal which is the minimum amount of time the solution shall use to test, regardless of how many
+	 * iterations are actually completed
+	 */
+	private float timeTestGoal = 0.01f;
+	
+	/**
+	 * the time in milliseconds that the program could end
+	 */
+	private long endTime;
 	
 	
 	//////////////////////////////////////////
@@ -173,8 +195,12 @@ public class Tester {
 	 * 
 	 * You likely do not have to change this part of the framework. We are considering this complete and 
 	 * want your team to focus more on the SecurityTests.  
+	 * 
+	 * EDIT: when this method is called, it sets the end time.
 	 */
 	public void executeBasicTests() {
+		
+		endTime = (long) (System.currentTimeMillis() + timeTestGoal * 60 * 1000);
 		
 		int passCount = 0;
 		int failCount = 0;
@@ -225,7 +251,7 @@ public class Tester {
 	 * In an effort to demonstrate some of the features of the framework that you can already utilize, we have
 	 * provided some example code in the method. The examples only demonstrate how to use existing functionality. 
 	 */
-	public void executeSecurityTests() {
+	private void executeWithParameters(double d, int i, String s) {
 		
 		/////////// START EXAMPLE CODE /////////////
 		
@@ -270,10 +296,10 @@ public class Tester {
 			// if it is not an enumeration parameter, it is either an Integer, Double, or String
 			} else {
 				if (potentialParameter.getType() == Integer.class){ 
-					parameterString = Integer.toString(1) + " ";	// dumb logic - always use '1' for an Integer
+					parameterString = Integer.toString(i) + " ";	// dumb logic - always use '1' for an Integer
 					previousParameterStrings.add(parameterString);
 				} else if (potentialParameter.getType() == Double.class) {
-					parameterString = Double.toString(1.0) + " ";	// dumb logic - always use '1.0' for a Double
+					parameterString = Double.toString(d) + " ";	// dumb logic - always use '1.0' for a Double
 					previousParameterStrings.add(parameterString);
 				} else if (potentialParameter.getType() == String.class) {
 
@@ -284,9 +310,9 @@ public class Tester {
 						List<Object> formatVariableValues = new ArrayList<Object>();
 						for(Class type : potentialParameter.getFormatVariables()) {
 							if (type == Integer.class){ 
-								formatVariableValues.add(new Integer(1)); // dumb logic - always use '1' for an Integer
+								formatVariableValues.add(new Integer(i)); // dumb logic - always use '1' for an Integer
 							} else if (type == String.class) {
-								formatVariableValues.add(new String("one")); // dumb logic - always use 'one' for a String
+								formatVariableValues.add(s); // dumb logic - always use 'one' for a String
 							}
 						}
 						
@@ -295,7 +321,7 @@ public class Tester {
 								potentialParameter.getFormattedParameter(formatVariableValues);
 					}
 					else {
-						parameterString = "one ";		// dumb logic - always use 'one' for a String
+						parameterString = s;		// dumb logic - always use 'one' for a String
 					}
 
 					previousParameterStrings.add(parameterString);
@@ -322,6 +348,30 @@ public class Tester {
 
 		/////////// END EXAMPLE CODE ////////////// 
 		
+	}
+	
+	/**
+	 * @author Calvin
+	 * 
+	 * this is a first attempt at improving on the default security tests. The method shall test the jar the specified number of times or for
+	 * the specified amount of time. It shall use pseudorandom arguments. However, it still uses 'dumb logic' for the enumeration and bounded
+	 * string parameters.
+	 * The previous method that bore this name has been renamed 'executeWithParameters'
+	 * 
+	 * This method assumed the basic tests have been executed.
+	 */
+	public void executeSecurityTests() {
+		
+		
+		while(continueTesting()) {
+			double randDouble = Math.random() * 10 - 5;
+			int randInt = (int)(Math.random() * 10 - 5);
+			String randString = getRandomString((int)(Math.random() * 10) ); //length 0-10
+			executeWithParameters(randDouble, randInt, randString);
+			testIterations++;
+		}
+		
+		//showCodeCoverageResultsExample();
 	}
 	
 	
@@ -615,6 +665,34 @@ public class Tester {
 		final Integer totalCount = Integer.valueOf(counter.getTotalCount());
 		return missedCount.toString() + " of " + totalCount.toString() + " " + unit + " missed\n";
 	}
+	
+	/**
+	 * @author Calvin Krist
+	 * @return whether or not another test should be run on the jar
+	 */
+	private boolean continueTesting() {
+		if(System.currentTimeMillis() < endTime)
+			return true;
+		return testIterations < targetTestIterations;
+	}
+	
+	/**
+	 * @author Calvin
+	 * 
+	 * @param the length of the random String generated
+	 * @return a random String using the character 'A' - 'Z' and '0' - '9'
+	 */
+	private String getRandomString(int length) {
+		String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        StringBuilder salt = new StringBuilder();
+        Random rnd = new Random();
+        while (salt.length() < length + 1) {
+            int index = (int) (rnd.nextFloat() * SALTCHARS.length());
+            salt.append(SALTCHARS.charAt(index));
+        }
+        String saltStr = salt.toString();
+        return saltStr;
+	}
 
 	
 	/**
@@ -634,11 +712,11 @@ public class Tester {
 		
 		// Below is the second example of how to tap into code coverage metrics 
 		System.out.println("\n");
-		printRawCoverageStats();
+		//printRawCoverageStats();
 		
 		// Below is the third example of how to tap into code coverage metrics
 		System.out.println("\n");
-		System.out.println(generateDetailedCodeCoverageResults());
+		//System.out.println(generateDetailedCodeCoverageResults());
 	}
 	
 	
