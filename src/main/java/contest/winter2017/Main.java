@@ -43,6 +43,16 @@ public class Main {
 	public static final String ALT_HELP = "h";
 	
 	/**
+	 * cli key for minimum number of test arguments
+	 */
+	public static final String TEST_ITERATIONS = "bbTests";
+	
+	/**
+	 * cli key for the minimum amount of time to run tests for
+	 */
+	public static final String TIME_GOAL = "timeGoal";
+	
+	/**
 	 * Entry-point method for the black-box testing framework 
 	 * 
 	 * @param args - String array of command line arguments
@@ -57,6 +67,8 @@ public class Main {
 		options.addOption(JACOCO_AGENT_JAR_PATH, true, "path to the jacoco agent jar");
 		options.addOption(HELP, false, "help");
 		options.addOption(ALT_HELP, false, "help");
+		options.addOption(TEST_ITERATIONS, true, "minimum number of test iterations");
+		options.addOption(TIME_GOAL, true, "the minimum amount of time to run tests for");
 		
 		try {
 			CommandLine cliArgs = parser.parse(options, args);
@@ -69,9 +81,38 @@ public class Main {
 					String jacocoOutputDirPath = cliArgs.getOptionValue(JACOCO_OUTPUT_PATH);
 					String jacocoAgentJarPath = cliArgs.getOptionValue(JACOCO_AGENT_JAR_PATH);
 					
+					String numIterations = null;
+					String timeBounds = null;
+					if(cliArgs.hasOption(TEST_ITERATIONS)) { //verify the argument as valid
+						numIterations = cliArgs.getOptionValue(TEST_ITERATIONS);
+						try {
+							int temp = Integer.valueOf(numIterations);
+						} catch(NumberFormatException e) {
+							throw new IllegalArgumentException("Failed to execute - bbTests is not an integer.");
+						}
+						
+						if(Integer.valueOf(numIterations) < 0)
+							throw new IllegalArgumentException("Failed to execute - bbTests parameter is negative.");
+					}
+					if(cliArgs.hasOption(TIME_GOAL)) { //verify the argument as valid
+						timeBounds = cliArgs.getOptionValue(TIME_GOAL);
+						try {
+							double temp = Double.valueOf(timeBounds);
+						} catch(NumberFormatException e) {
+							throw new IllegalArgumentException("Failed to execute - timeGoal is not a double.");
+						}
+						
+						if(Double.valueOf(timeBounds) < 0)
+							throw new IllegalArgumentException("Failed to execute - timeGoal parameter is negative.");
+					}
+					
 					// the Tester class contains all of the logic for the testing framework
 					Tester tester = new Tester();
 					if (tester.init(jarToTestPath, jacocoOutputDirPath, jacocoAgentJarPath)) {
+						if(numIterations != null)
+							tester.setTargetTestIterations(Integer.valueOf(numIterations));
+						if(timeBounds != null)
+							tester.setTimeGoal(Double.valueOf(timeBounds));
 						tester.executeBasicTests();          // this is the simple testing that we have implemented - likely no need to change this code much
 						tester.executeSecurityTests();       // this is the security vulnerability testing that we want you to implement
 					}

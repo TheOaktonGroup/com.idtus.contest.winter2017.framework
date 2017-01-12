@@ -87,13 +87,7 @@ public class Tester {
 	/**
 	 * the target number of test iterations to be completed, default 1000
 	 */
-	private int targetTestIterations = 50;
-	
-	/**
-	 * the specified time goal which is the minimum amount of time the solution shall use to test, regardless of how many
-	 * iterations are actually completed
-	 */
-	private float timeTestGoal = 0.01f;
+	private int targetTestIterations = 1000;
 	
 	/**
 	 * the time in milliseconds that the program could end
@@ -116,6 +110,8 @@ public class Tester {
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public boolean init(String initJarToTestPath, String initJacocoOutputDirPath, String initJacocoAgentJarPath) {
+		
+		endTime = (long) (System.currentTimeMillis() + 5 * 60 * 1000);
 		
 		this.jarToTestPath = initJarToTestPath;
 		this.jacocoOutputDirPath = initJacocoOutputDirPath;
@@ -199,8 +195,6 @@ public class Tester {
 	 * EDIT: when this method is called, it sets the end time.
 	 */
 	public void executeBasicTests() {
-		
-		endTime = (long) (System.currentTimeMillis() + timeTestGoal * 60 * 1000);
 		
 		int passCount = 0;
 		int failCount = 0;
@@ -335,7 +329,7 @@ public class Tester {
 			potentialParameters = this.parameterFactory.getNext(previousParameterStrings);
 		}
 		Object[] parameters = previousParameterStrings.toArray();
-		
+
 		// This example demonstrates how to execute the black-box jar with concrete parameters
 		// and how to access (print to screen) the standard output and error from the run
 		Output output = instrumentAndExecuteCode(parameters);
@@ -344,7 +338,7 @@ public class Tester {
 		// We do not intend for this example code to be part of your output. We are only
 		// including the example to show you how you might tap into the code coverage
 		// results that we are generating with jacoco
-		showCodeCoverageResultsExample();
+		//showCodeCoverageResultsExample();
 
 		/////////// END EXAMPLE CODE ////////////// 
 		
@@ -367,11 +361,12 @@ public class Tester {
 			double randDouble = Math.random() * 10 - 5;
 			int randInt = (int)(Math.random() * 10 - 5);
 			String randString = getRandomString((int)(Math.random() * 10) ); //length 0-10
+			System.out.println("\nTest " + (testIterations + 1) + "/" + targetTestIterations);
 			executeWithParameters(randDouble, randInt, randString);
 			testIterations++;
 		}
 		
-		//showCodeCoverageResultsExample();
+		showCodeCoverageResultsExample();
 	}
 	
 	
@@ -671,8 +666,7 @@ public class Tester {
 	 * @return whether or not another test should be run on the jar
 	 */
 	private boolean continueTesting() {
-		if(System.currentTimeMillis() < endTime)
-			return true;
+		//TODO: implement the minimum amount of time tested
 		return testIterations < targetTestIterations;
 	}
 	
@@ -719,5 +713,26 @@ public class Tester {
 		//System.out.println(generateDetailedCodeCoverageResults());
 	}
 	
+	//////////////////////////////////////////
+	// SETTERS
+	//////////////////////////////////////////
+	
+	/**
+	 * @author Calvin
+	 * Setter for the minimum amount of tests to run. 
+	 * @param i
+	 */
+	public void setTargetTestIterations(int i) {
+		targetTestIterations = i;
+	}
+	
+	/**
+	 * @author Calvin
+	 * Sets the minimum end time to numMins after the current time
+	 * @param numMins
+	 */
+	public void setTimeGoal(double numMins) {
+		endTime = (long)(System.currentTimeMillis() + 60 * numMins * 1000);
+	}
 	
 }
