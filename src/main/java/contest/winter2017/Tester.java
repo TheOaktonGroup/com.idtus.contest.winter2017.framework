@@ -13,6 +13,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -94,6 +95,11 @@ public class Tester {
 	 */
 	private long endTime;
 	
+	/**
+	 * a list of exceptions seen throughout the testing process
+	 */
+	private List<String> exceptions;
+	
 	
 	//////////////////////////////////////////
 	// PUBLIC METHODS
@@ -112,6 +118,7 @@ public class Tester {
 	public boolean init(String initJarToTestPath, String initJacocoOutputDirPath, String initJacocoAgentJarPath) {
 		
 		endTime = (long) (System.currentTimeMillis() + 5 * 60 * 1000);
+		exceptions = new LinkedList<String>();
 		
 		this.jarToTestPath = initJarToTestPath;
 		this.jacocoOutputDirPath = initJacocoOutputDirPath;
@@ -205,6 +212,9 @@ public class Tester {
 			// instrument the code to code coverage metrics, execute the test with given parameters, then show the output
 			Output output = instrumentAndExecuteCode(test.getParameters().toArray());
 			printBasicTestOutput(output);
+			if(!output.getStdErrString().equals("")) {
+				exceptions.add(output.getStdErrString());
+			}
 			
 			// determine the result of the test based on expected output/error regex
 			if(output.getStdOutString().matches(test.getStdOutExpectedResultRegex())
@@ -245,16 +255,10 @@ public class Tester {
 	 * In an effort to demonstrate some of the features of the framework that you can already utilize, we have
 	 * provided some example code in the method. The examples only demonstrate how to use existing functionality. 
 	 */
-	private void executeWithParameters(double d, int i, String s) {
+	private void executeWithParameters(double d, int i) {
 		
-		/////////// START EXAMPLE CODE /////////////
+		String t = getRandomString((int)(Math.random() * 10) );
 		
-		// This example demonstrates how to use the ParameterFactory to figure out the parameter types of parameters
-		// for each of the jars under test - this can be a difficult task because of the concepts of fixed and
-		// dependent parameters (see the explanation at the top of the ParameterFactory class). As we figure out 
-		// what each parameter type is, we are assigning it a simple (dumb) value so that we can use those parameters 
-		// to execute the black-box jar. By the time we finish this example, we will have an array of concrete 
-		// parameters that we can use to execute the black-box jar.
 		List<String> previousParameterStrings = new ArrayList<String>(); // start with a blank parameter list since we are going to start with the first parameter
 		List<Parameter> potentialParameters = this.parameterFactory.getNext(previousParameterStrings);
 		Parameter potentialParameter;
@@ -266,11 +270,9 @@ public class Tester {
 			
 			// an enumeration parameter is one that has multiple options
 			if (potentialParameter.isEnumeration()) {
-				parameterString = potentialParameter.getEnumerationValues().get(0) + " "; // dumb logic - given a list of options, always use the first one
-				
+				parameterString = potentialParameter.getEnumerationValues().get((int)(Math.random() * potentialParameter.getEnumerationValues().size())) + " "; // dumb logic - given a list of options, always use the first one
 				// if the parameter has internal format (eg. "<number>:<number>PM EST")
 				if(potentialParameter.isFormatted()) {
-					
 					// loop over the areas of the format that must be replaced and choose values
 					List<Object> formatVariableValues = new ArrayList<Object>();
 					for(Class type :potentialParameter.getFormatVariables(parameterString)) {
@@ -304,9 +306,10 @@ public class Tester {
 						List<Object> formatVariableValues = new ArrayList<Object>();
 						for(Class type : potentialParameter.getFormatVariables()) {
 							if (type == Integer.class){ 
-								formatVariableValues.add(new Integer(i)); // dumb logic - always use '1' for an Integer
+								formatVariableValues.add(new Integer(i)); 
 							} else if (type == String.class) {
-								formatVariableValues.add(s); // dumb logic - always use 'one' for a String
+								String s = Math.random() < 0.5 ? t : getRandomString((int)(Math.random() * 10) );
+								formatVariableValues.add(s);
 							}
 						}
 						
@@ -315,7 +318,8 @@ public class Tester {
 								potentialParameter.getFormattedParameter(formatVariableValues);
 					}
 					else {
-						parameterString = s;		// dumb logic - always use 'one' for a String
+						String s = Math.random() < 0.5 ? t : getRandomString((int)(Math.random() * 10) );
+						parameterString = s;
 					}
 
 					previousParameterStrings.add(parameterString);
@@ -334,11 +338,14 @@ public class Tester {
 		// and how to access (print to screen) the standard output and error from the run
 		Output output = instrumentAndExecuteCode(parameters);
 		printBasicTestOutput(output); 
+		if(!output.getStdErrString().equals("")) {
+			exceptions.add(output.getStdErrString());
+		}
 		
 		// We do not intend for this example code to be part of your output. We are only
 		// including the example to show you how you might tap into the code coverage
 		// results that we are generating with jacoco
-		//showCodeCoverageResultsExample();
+		showCodeCoverageResultsExample();
 
 		/////////// END EXAMPLE CODE ////////////// 
 		
@@ -360,11 +367,13 @@ public class Tester {
 		while(continueTesting()) {
 			double randDouble = Math.random() * 10 - 5;
 			int randInt = (int)(Math.random() * 10 - 5);
-			String randString = getRandomString((int)(Math.random() * 10) ); //length 0-10
 			System.out.println("\nTest " + (testIterations + 1) + "/" + targetTestIterations);
-			executeWithParameters(randDouble, randInt, randString);
+			executeWithParameters(randDouble, randInt);
 			testIterations++;
 		}
+		
+		for(String s : exceptions)
+			System.out.println(s);
 		
 		showCodeCoverageResultsExample();
 	}
@@ -677,10 +686,10 @@ public class Tester {
 	 * @return a random String using the character 'A' - 'Z' and '0' - '9'
 	 */
 	private String getRandomString(int length) {
-		String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+		String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#<?[{(&^%$*;\\|/-=+_";
         StringBuilder salt = new StringBuilder();
         Random rnd = new Random();
-        while (salt.length() < length + 1) {
+        while (salt.length() < length ) {
             int index = (int) (rnd.nextFloat() * SALTCHARS.length());
             salt.append(SALTCHARS.charAt(index));
         }
