@@ -189,7 +189,6 @@ public class Parameter {
 	 * @return String containing the parameter with <<REPLACE_ME_...>> placeholders replaced with the passed in values
 	 */
 	public String getFormattedParameter(String format, List<Object> formatVariableValues) {
-	
 		Matcher replaceMeMatcher = replaceMePattern.matcher(format);
 		StringBuffer sb = new StringBuffer();
 		for(Object variable : formatVariableValues) {

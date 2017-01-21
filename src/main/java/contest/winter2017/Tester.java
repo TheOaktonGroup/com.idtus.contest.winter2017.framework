@@ -100,6 +100,16 @@ public class Tester {
 	 */
 	private List<String> exceptions;
 	
+	/**
+	 * the amount of predefined tests passed
+	 */
+	private int testsPassed;
+	
+	/**
+	 * the amount of predefined tests failed
+	 */
+	private int testsFailed;
+	
 	
 	//////////////////////////////////////////
 	// PUBLIC METHODS
@@ -245,6 +255,9 @@ public class Tester {
 		double percentCovered = generateSummaryCodeCoverageResults();
 		System.out.println("basic test results: " + (passCount + failCount) + " total, " + passCount + " pass, " + failCount + " fail, " + percentCovered + " percent covered");
 		System.out.println(HORIZONTAL_LINE);
+		
+		testsPassed = passCount;
+		testsFailed = failCount;
 	}
 	
 	
@@ -372,10 +385,7 @@ public class Tester {
 			testIterations++;
 		}
 		
-		for(String s : exceptions)
-			System.out.println(s);
-		
-		showCodeCoverageResultsExample();
+		printYAMLOutput();
 	}
 	
 	
@@ -686,7 +696,7 @@ public class Tester {
 	 * @return a random String using the character 'A' - 'Z' and '0' - '9'
 	 */
 	private String getRandomString(int length) {
-		String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#<?[{(&^%$*;\\|/-=+_";
+		String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#<?[{(&^%$*;\\|/-=+_`~:,.¢£¤¥¦§¨©ª«¬®±µ¶¸º¼ÂÄÆËØÞß";
         StringBuilder salt = new StringBuilder();
         Random rnd = new Random();
         while (salt.length() < length ) {
@@ -711,7 +721,7 @@ public class Tester {
 		// Below is the first example of how to tap into code coverage metrics
 		double result = generateSummaryCodeCoverageResults();
 		System.out.println("\n");
-		System.out.println("percent covered: " + result);
+		//System.out.println("percent covered: " + result);
 		
 		// Below is the second example of how to tap into code coverage metrics 
 		System.out.println("\n");
@@ -720,6 +730,28 @@ public class Tester {
 		// Below is the third example of how to tap into code coverage metrics
 		System.out.println("\n");
 		//System.out.println(generateDetailedCodeCoverageResults());
+	}
+	 /**
+	  * @Calvin
+	  * prints the YAML output
+	  */
+	private void printYAMLOutput() {
+		System.out.println("Total predefined tests run: " + (testsPassed + testsFailed));
+		System.out.println("Number of predefined tests that passed: " + testsPassed);
+		System.out.println("Number of predefined tests that failed: " + testsFailed);
+		System.out.println("Total code coverage percentage: " + generateSummaryCodeCoverageResults());
+		
+		//Remove non-unique errors from the list
+		for(int i = 0; i < exceptions.size(); i++) {
+			for(int k = i + 1; k < exceptions.size(); k++)
+				if(i != k && exceptions.get(i).equals(exceptions.get(k)))
+					exceptions.remove(k--);
+		}
+		
+		System.out.println("Unique error count: " + exceptions.size());
+		System.out.println("Errors seen:");
+		for(String s: exceptions)
+			System.out.println("\t-" + s);
 	}
 	
 	//////////////////////////////////////////
