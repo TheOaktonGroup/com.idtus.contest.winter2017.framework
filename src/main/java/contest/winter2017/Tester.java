@@ -354,14 +354,6 @@ public class Tester {
 		if(!output.getStdErrString().equals("")) {
 			exceptions.add(output.getStdErrString());
 		}
-		
-		// We do not intend for this example code to be part of your output. We are only
-		// including the example to show you how you might tap into the code coverage
-		// results that we are generating with jacoco
-		showCodeCoverageResultsExample();
-
-		/////////// END EXAMPLE CODE ////////////// 
-		
 	}
 	
 	/**
